@@ -12,7 +12,7 @@
 [![Methods](https://img.shields.io/badge/Institutional%20Methods-17-red)]()
 [![Self-Review](https://img.shields.io/badge/Self--Review-13%20checks-blueviolet)](skills/deep-analysis/scripts/lib/self_review.py)
 
-**A-share / HK / US deep-analysis engine — with first-class Chinese-market coverage Western terminals don't touch. v3.4.3: open-end mutual fund classification (110011 no longer misjudged as convertible bond) + field-level basic fallback gate (community PR #63) · v3.4.2: Windows + Clash Schannel TLS compat · v3.4.1: verdict granularity refinement · v3.4.0: ETF/LOF holdings batch analysis. 386 pytest pass.**
+**A-share / HK / US deep-analysis engine — with first-class Chinese-market coverage Western terminals don't touch. v3.4.4: data-quality banner UX (ETF "17% coverage" no longer reads as data failure · WCAG-compliant contrast on orange) · v3.4.3: open-end mutual fund classification + field-level basic fallback · v3.4.2: Windows + Clash Schannel TLS compat · v3.4.1: verdict granularity refinement. 397 pytest pass.**
 
 [Install](#install) · [Usage](#usage) · [Why Western Investors Should Care](#-why-western-investors-should-care) · [Jury Panel](#-51-investor-jury) · [Methods](#-17-institutional-methods) · [Self-Review Gate 🆕](#-mechanical-self-review-gate-new-in-v29) · [Screenshots](#-what-the-report-looks-like) · [FAQ](#-faq)
 

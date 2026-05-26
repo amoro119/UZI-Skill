@@ -455,12 +455,11 @@ def _render_style_chip(syn: dict) -> str:
 </div>'''
 
 
-def _render_data_gap_banner(data_gaps: dict | None) -> str:
+def _render_data_gap_banner(data_gaps: dict | None, raw: dict | None = None) -> str:
     """v2.3 · Render orange banner listing data gaps. Returns empty string if no gaps.
 
-    Reads synthesis.data_gaps which is populated in stage2() from _data_gaps.json
-    (produced by data_integrity.generate_recovery_tasks). The banner tells readers
-    upfront that the report has known holes — no silent fake numbers.
+    v3.4.4 · 新增 raw 参数 · 检测 ETF/LOF/mutual_fund 等基金类型 · 调整文案
+    避免用户把"基金类型预期缺字段"误判为"数据不可信"。
     """
     if not isinstance(data_gaps, dict) or not data_gaps.get("tasks"):
         return ""
@@ -470,6 +469,29 @@ def _render_data_gap_banner(data_gaps: dict | None) -> str:
     unresolved = data_gaps.get("unresolved", total)
     ack = total - unresolved
     cov = data_gaps.get("coverage_pct", 0)
+
+    # v3.4.4 · 检测是否基金类型（ETF/LOF/mutual_fund · 不应跑 stock 22 维全套）
+    is_fund_like = False
+    fund_label = None
+    if raw:
+        basic = (raw.get("dimensions", {}) or {}).get("0_basic", {}).get("data") or {}
+        sec_type = basic.get("security_type") or raw.get("security_type")
+        ticker = raw.get("ticker", "")
+        if sec_type in ("etf", "lof", "mutual_fund"):
+            is_fund_like = True
+            fund_label = {"etf": "ETF", "lof": "LOF 基金", "mutual_fund": "开放式基金"}.get(sec_type, "基金")
+        elif ticker:
+            # security_type 没在 raw 里 · 用 ticker 反推
+            try:
+                from lib.market_router import classify_security_type, parse_ticker
+                ti = parse_ticker(ticker)
+                if ti.market == "A":
+                    st = classify_security_type(ti.code)
+                    if st in ("etf", "lof", "mutual_fund"):
+                        is_fund_like = True
+                        fund_label = {"etf": "ETF", "lof": "LOF 基金", "mutual_fund": "开放式基金"}.get(st, "基金")
+            except Exception:
+                pass
 
     # Build chip list — critical first, then optional, then enrichment
     order = {"critical": 0, "optional": 1, "enrichment": 2}
@@ -485,23 +507,39 @@ def _render_data_gap_banner(data_gaps: dict | None) -> str:
     if len(sorted_tasks) > 20:
         overflow = f'<span class="chip">+{len(sorted_tasks) - 20} 更多</span>'
 
-    subtitle = (
-        f"数据覆盖率 <strong>{cov}%</strong> · "
-        f"共 <strong>{total}</strong> 个字段未从脚本采集到"
-    )
-    if ack:
-        subtitle += f"（其中 <strong>{ack}</strong> 已由 agent 确认"
-        subtitle += "真的拿不到）"
+    if is_fund_like:
+        # v3.4.4 · 基金类型 · 缺字段是预期不是 bug · 改文案避免误判可信度
+        banner_class = "data-gap-banner fund-type"
+        title = f"⚠️ FUND-TYPE NOTE · {fund_label} 缺个股财务字段属预期"
+        subtitle = (
+            f"<strong>{fund_label}</strong>本身没有 ROE / 营收 / 净利率 / PE / 公司名 等个股财务字段 · "
+            f"所以数据覆盖率 <strong>{cov}%</strong> 是<strong>预期偏低</strong>·不影响分析可信度. "
+            f"如果你想看具体业绩 · v3.4.0+ 起会自动询问是否循环分析<strong>前 10 大持仓股</strong>"
+            f"（如 ETF 沪深 300 → 茅台 / 宁德等成分股）·每只持仓股都有完整 22 维报告."
+        )
+        hint = (
+            "📌 这不是数据采集失败 · 是基金类型本身的字段差异. "
+            "对基金的核心评估应看持仓集中度 / 跟踪误差 / 历史回撤 (UZI 暂不直接评 · 走持仓循环代替)."
+        )
+    else:
+        banner_class = "data-gap-banner"
+        title = "DATA QUALITY · 本报告存在已知数据缺口"
+        subtitle = (
+            f"数据覆盖率 <strong>{cov}%</strong> · "
+            f"共 <strong>{total}</strong> 个字段未从脚本采集到"
+        )
+        if ack:
+            subtitle += f"（其中 <strong>{ack}</strong> 已由 agent 确认"
+            subtitle += "真的拿不到）"
+        hint = (
+            "Agent 已尝试浏览器抓取 / MX API / WebSearch / 逻辑推导；"
+            "划线字段为已确认无法补齐，其余字段显示为 “—”。"
+        )
 
-    hint = (
-        "Agent 已尝试浏览器抓取 / MX API / WebSearch / 逻辑推导；"
-        "划线字段为已确认无法补齐，其余字段显示为 “—”。"
-    )
-
-    return f'''<div class="data-gap-banner" role="alert">
+    return f'''<div class="{banner_class}" role="alert">
   <div class="icon">⚠️</div>
   <div class="body">
-    <div class="title">DATA QUALITY · 本报告存在已知数据缺口</div>
+    <div class="title">{title}</div>
     <div class="subtitle">{subtitle}</div>
     <div class="list">
       {chips_block}

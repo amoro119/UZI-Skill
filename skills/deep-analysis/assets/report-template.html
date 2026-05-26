@@ -123,13 +123,14 @@ body::after {
 .market-badge.open { background: var(--bull-tint); color: var(--bull-green); border: 1px solid var(--bull-green); }
 .market-badge.closed { background: var(--bg-tinted); color: var(--text-dim); border: 1px solid var(--border); }
 
-/* ═══════════════ DATA QUALITY BANNER · v2.3 ═══════════════ */
+/* ═══════════════ DATA QUALITY BANNER · v2.3 (contrast fix v3.4.4) ═══════════════ */
+/* 用户反馈：橙底橙字看不清 · v3.4.4 提高对比度 · 关键数字用深棕色 + 加粗 */
 .data-gap-banner {
   margin: 16px 0 24px;
   padding: 16px 20px;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.04));
-  border: 1px solid rgba(245, 158, 11, 0.45);
-  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.03));
+  border: 1px solid rgba(180, 83, 9, 0.55);  /* v3.4.4 边框加深 */
+  border-left: 4px solid #b45309;            /* v3.4.4 左边条深棕色 · 更醒目 */
   border-radius: 8px;
   display: flex;
   gap: 16px;
@@ -137,21 +138,42 @@ body::after {
 }
 .data-gap-banner .icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
 .data-gap-banner .body { flex: 1; }
-.data-gap-banner .title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #f59e0b; margin-bottom: 4px; letter-spacing: .04em; }
-.data-gap-banner .subtitle { font-size: 13px; color: var(--text-bright); line-height: 1.6; }
-.data-gap-banner .subtitle strong { color: #f59e0b; }
+/* v3.4.4 · title 用深棕 #92400e (WCAG AA 通过 on 浅橙底) · 替代之前难读的 #f59e0b */
+.data-gap-banner .title {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 15px;
+  color: #92400e; margin-bottom: 4px; letter-spacing: .04em;
+}
+.data-gap-banner .subtitle { font-size: 13px; color: #1f2937; line-height: 1.6; }  /* v3.4.4 · 深灰主文字 */
+/* v3.4.4 · subtitle 里的数字 / 关键词用深棕加粗 · 替代之前的橙底橙字 */
+.data-gap-banner .subtitle strong { color: #7c2d12; font-weight: 800; }
 .data-gap-banner .list { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+/* v3.4.4 · chip 深棕字 + 实色橙底 · 高对比 */
 .data-gap-banner .chip {
   font-family: 'Fira Code', monospace;
   font-size: 11px;
+  font-weight: 600;
   padding: 3px 10px;
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.22);
+  color: #7c2d12;
+  border: 1px solid rgba(180, 83, 9, 0.5);
   border-radius: 999px;
 }
-.data-gap-banner .chip.ack { background: rgba(148, 163, 184, 0.15); color: var(--text-dim); border-color: var(--border); text-decoration: line-through; }
-.data-gap-banner .hint { margin-top: 8px; font-size: 11px; color: var(--text-dim); letter-spacing: .05em; }
+.data-gap-banner .chip.ack { background: rgba(148, 163, 184, 0.18); color: #475569; border-color: #94a3b8; text-decoration: line-through; }
+.data-gap-banner .hint { margin-top: 8px; font-size: 11px; color: #57534e; letter-spacing: .05em; }
+
+/* v3.4.4 · 基金类型 banner · 信息性提示 · 蓝色调（区别于"问题"橙色调）*/
+.data-gap-banner.fund-type {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.02));
+  border: 1px solid rgba(2, 132, 199, 0.45);
+  border-left: 4px solid #0369a1;
+}
+.data-gap-banner.fund-type .title { color: #0c4a6e; }
+.data-gap-banner.fund-type .subtitle { color: #1f2937; }
+.data-gap-banner.fund-type .subtitle strong { color: #0c4a6e; }
+.data-gap-banner.fund-type .chip {
+  background: rgba(14, 165, 233, 0.15); color: #0c4a6e; border-color: rgba(2, 132, 199, 0.4);
+}
+.data-gap-banner.fund-type .hint { color: #475569; }
 
 /* ═══════════════ STYLE CHIP · v2.7 ═══════════════ */
 .style-chip-wrap {

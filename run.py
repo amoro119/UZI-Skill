@@ -291,6 +291,8 @@ def main():
                         help="v2.7.1 · 启用 XueQiu Playwright 登录态抓取实盘比赛持仓（首次需 `python -m lib.xueqiu_browser login`）")
     parser.add_argument("--depth", choices=["lite", "medium", "deep"], default=None,
                         help="v2.10.2 · 思考深度 · lite(1-2min) / medium(5-8min · 默认) / deep(15-20min · 含 Bull-Bear 辩论 + Segmental)")
+    parser.add_argument("--output-dir", metavar="DIR", default=None,
+                        help="v2.11.0 · SaaS 集成：把产出（standalone html + 图 + 摘要）拷贝到该目录，并在其中生成 index.html / report.meta.json。建议配合 --no-browser 使用。")
     args = parser.parse_args()
 
     # v2.10.5 · run.py 是 CLI 直跑入口（agent 流程走 stage1/stage2 直接调用，不经 run.py）。
@@ -525,6 +527,50 @@ def main():
     print(f"\n{'━' * 50}")
     print(f"📄 报告路径: {standalone}")
     print(f"   大小: {standalone.stat().st_size // 1024} KB")
+
+    # v2.11.0 · --output-dir：把报告整目录复制到指定路径，便于 SaaS / 平台集成
+    if args.output_dir:
+        import json
+        from datetime import datetime as _dt
+        out = Path(args.output_dir).resolve()
+        out.mkdir(parents=True, exist_ok=True)
+        try:
+            for item in report_dir.iterdir():
+                target = out / item.name
+                if item.is_dir():
+                    if target.exists():
+                        shutil.rmtree(target)
+                    shutil.copytree(item, target)
+                else:
+                    shutil.copy2(item, target)
+            index_target = out / "index.html"
+            shutil.copy2(standalone, index_target)
+
+            one_liner = ""
+            ol_path = report_dir / "one-liner.txt"
+            if ol_path.exists():
+                try:
+                    one_liner = ol_path.read_text(encoding="utf-8").strip()
+                except Exception:
+                    pass
+
+            meta = {
+                "schema": 1,
+                "ticker": args.ticker,
+                "depth": args.depth or os.environ.get("UZI_DEPTH") or "medium",
+                "generated_at": _dt.utcnow().isoformat() + "Z",
+                "report_dir": str(report_dir),
+                "standalone": standalone.name,
+                "index": "index.html",
+                "size_kb": standalone.stat().st_size // 1024,
+                "one_liner": one_liner,
+            }
+            (out / "report.meta.json").write_text(
+                json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            print(f"   📦 已导出到: {out}/index.html")
+        except Exception as _e:
+            print(f"⚠️  --output-dir 导出失败（不影响本地报告）: {_e}")
 
     # 打开浏览器（本地模式）
     if env["has_browser"] and not args.no_browser and not args.remote:

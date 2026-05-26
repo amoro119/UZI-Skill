@@ -7,6 +7,61 @@
 
 ---
 
+## v3.5.0 (2026-05-13 · SaaS 集成：run.py 新增 --output-dir)
+
+### FEATURE · `--output-dir` CLI flag · 供 uzi-platform 集成
+- **背景**：把 UZI-Skill 包装成 SaaS（`uzi-platform/`），后端 Celery worker 需要稳定产物路径挂载到 web 报告页
+- **位置**：`run.py::main` argparse 段 + 报告找到后的拷贝段（≈ line 530）
+- **改动**：
+  1. argparse 新增 `--output-dir DIR`
+  2. 报告路径确定后，把整目录（含 avatars / share-card.png / war-report.png / one-liner.txt）拷到该目录
+  3. `full-report-standalone.html` 额外复制一份为 `index.html`，便于平台直接服务
+  4. 生成 `report.meta.json`（schema=1 · ticker / depth / generated_at / one_liner / size_kb），供后端落 DB
+  5. 拷贝失败不影响本地报告生成（silent fallback + warning）
+- **不破坏现有行为**：未传 `--output-dir` 时与改动前完全一致；--remote / --no-browser / browser open 路径全部保留
+- **验证**：
+  - 不传 `--output-dir`：本地 `reports/{ticker}_{date}/` 仍正常生成（既有测试覆盖）
+  - 传 `--output-dir /tmp/x`：`/tmp/x/index.html` + `/tmp/x/report.meta.json` 存在且 size > 0
+- **未来改该区域注意事项**：
+  - `report.meta.json` 的 schema 字段是 SaaS 后端契约 · 加字段 OK · **改/删既有字段必须升 schema 版本号**
+  - 拷贝用 `shutil.copytree` 已存在目录会先删 · 不要把用户的 `--output-dir` 设为非空业务目录
+  - `index.html` 永远是 `full-report-standalone.html` 的副本（self-contained · 不依赖 avatars/） · 不要改为 `full-report.html`（会拉 share-card.png CDN）
+
+---
+
+## v3.4.4 (2026-05-12 · data_gap_banner UX 优化)
+
+### UX BUG 1 · ETF 17% 覆盖率让用户误判可信度
+- **症状**：用户反馈"ETF 报告数据覆盖率 17% · 会不会影响可信度"
+- **位置**：`lib/report/institutional.py::_render_data_gap_banner`
+- **根因**：原 banner 不区分 stock vs ETF/基金 · 对基金来说"缺 ROE/PE"是字段本身没有 · 不是采集失败 · 但 banner 用同样的"⚠️ DATA QUALITY 警告"措辞让用户误以为不可信
+- **修法**：
+  1. `_render_data_gap_banner(data_gaps, raw=None)` 新增 raw 参数
+  2. 检测 `basic.security_type` 或 `raw.security_type` · 或 ticker 反推 (调 `classify_security_type`)
+  3. ETF/LOF/mutual_fund → 渲染 `data-gap-banner fund-type` 蓝色调 banner · 文案"FUND-TYPE NOTE · 字段差异属预期·不影响可信度·去看前 10 大持仓股"
+  4. 普通 stock 走老 banner · 向后兼容
+- **未来注意**：
+  - 新增 sec_type 时 · 更新 `is_fund_like` 检测逻辑
+  - raw 传入是可选参数 · 不传时走老 banner（不要 break 现有 caller）
+  - ticker 反推依赖 `lib.market_router.classify_security_type` · 改前缀规则要回归测试
+
+### UX BUG 2 · banner 橙底橙字对比度不足
+- **症状**：banner subtitle `<strong>` 用 `#f59e0b` 浅橙 · 在 12% 橙色背景上几乎看不清；chip 用 `#fbbf24` 亮橙更糟
+- **位置**：`assets/report-template.html` `.data-gap-banner` 系列 CSS
+- **修法**：
+  - title `#f59e0b` → `#92400e` 深棕
+  - subtitle strong `#f59e0b` → `#7c2d12` 深棕红 + font-weight 800
+  - chip text `#fbbf24` → `#7c2d12` + font-weight 600
+  - subtitle 正文 `var(--text-bright)` → `#1f2937` 深灰（避免主题色干扰）
+  - 左边条 `#f59e0b` → `#b45309` 深棕色（更醒目）
+  - 新加 `.data-gap-banner.fund-type` 蓝色调 CSS (#0369a1 + #0c4a6e)
+- **回归测试**：`tests/test_v3_4_4_banner_ux.py` 11 个测试 · 含 CSS 颜色字符串断言（守护回归）
+- **未来注意**：
+  - 任何 banner 文字颜色都必须在浅橙背景上 WCAG AA 通过 · 不要用 `#fXXXXX` 系列浅橙做文字
+  - 信息性提示用蓝色调 · 警告/错误才用橙红色 · 维持视觉语义一致
+
+---
+
 ## v3.4.3 (2026-05-12 · 开放式基金分类修复 + 字段级 fallback gate)
 
 ### BUG #60-followup · 开放式基金被误判为 convertible_bond

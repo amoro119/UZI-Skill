@@ -1,5 +1,88 @@
 # Release Notes
 
+## v3.5.0 — 2026-05-13 (SaaS 集成：`run.py --output-dir`)
+
+> **背景**：UZI-Skill 现在被包成 SaaS 平台（`uzi-platform/`，按次付费 + 公共研报池）。
+> Celery worker 需要一个稳定的产物路径，本次给 `run.py` 加了非侵入式 SaaS 集成参数。
+
+### 新增 · `--output-dir DIR`
+- 跑完分析后，把整个 `reports/{ticker}_{date}/` 目录拷贝到 DIR
+- 在 DIR 内额外生成：
+  - `index.html` — `full-report-standalone.html` 的副本，平台直接挂 iframe
+  - `report.meta.json` — `{schema, ticker, depth, generated_at, one_liner, size_kb}` 供后端落库
+- **零回归**：未传该参数时行为 100% 兼容；--remote / --no-browser / 浏览器打开全部保留
+- **降级**：拷贝失败不阻断本地报告，仅打印 warning
+
+### 用法
+```bash
+# 单跑（行为不变）
+python run.py 600519.SH
+
+# SaaS 集成
+python run.py 600519.SH --depth medium --no-browser --output-dir /var/uzi/reports/<job_id>
+# → /var/uzi/reports/<job_id>/index.html
+# → /var/uzi/reports/<job_id>/report.meta.json
+```
+
+详见 `docs/BUGS-LOG.md::v3.5.0`。
+
+---
+
+## v3.4.4 — 2026-05-12 (data quality banner UX 优化)
+
+### 用户反馈
+
+1. **可信度疑问**：ETF 报告里"数据覆盖率 17%"看起来不可信 · 但 ETF 本来就没有 ROE/PE 这些个股字段 · 17% 是预期值
+2. **对比度问题**：banner 橙色背景 + 橙色字（`#f59e0b` 标题 + `#fbbf24` chip）看不清
+
+### 修法
+
+#### 1. 智能 banner · ETF/基金类型自动切换文案
+
+`_render_data_gap_banner(data_gaps, raw)` 新增 `raw` 参数 · 检测：
+- ETF / LOF / **mutual_fund**（v3.4.3 新类型）→ 渲染 `data-gap-banner fund-type` 蓝色调 banner
+- 普通 stock → 老 banner 不变（向后兼容）
+
+**fund-type banner 文案**：
+```
+⚠️ FUND-TYPE NOTE · ETF 缺个股财务字段属预期
+
+ETF 本身没有 ROE / 营收 / 净利率 / PE / 公司名 等个股财务字段 ·
+所以数据覆盖率 17% 是预期偏低·不影响分析可信度.
+如果你想看具体业绩 · v3.4.0+ 会自动询问是否循环分析前 10 大持仓股·
+每只持仓股都有完整 22 维报告.
+
+📌 这不是数据采集失败 · 是基金类型本身的字段差异.
+```
+
+ticker 反推：raw 没传 `security_type` 时 · 通过 ticker 调 `classify_security_type` 反推（510300 自动识别为 ETF）.
+
+#### 2. CSS 对比度修复
+
+| 元素 | 修前 | 修后 |
+|---|---|---|
+| Banner title | `#f59e0b` 浅橙 | `#92400e` 深棕 |
+| Subtitle strong | `#f59e0b` 浅橙 | `#7c2d12` 深棕红 + 加粗 800 |
+| Chip 文字 | `#fbbf24` 亮橙 | `#7c2d12` 深棕 + font-weight 600 |
+| Subtitle 正文 | `var(--text-bright)` 主题色 | `#1f2937` 深灰 |
+| Banner 左边条 | `#f59e0b` 橙 | `#b45309` 深棕色 |
+
+**fund-type banner 用蓝色调**（`#0369a1` border + `#0c4a6e` title）· 区别于"问题"橙色调 · 暗示这是**信息提示**而非警告.
+
+### 回归测试
+
+新增 `tests/test_v3_4_4_banner_ux.py` (11 tests):
+- 4 种 sec_type 路由（stock/etf/lof/mutual_fund）
+- ticker 反推 sec_type
+- 不传 raw 时向后兼容
+- 空 data_gaps 返空
+- CSS 深棕色断言（title/strong/chip）
+- fund-type 蓝色调断言
+
+**总套件 397 tests 全过**（386 baseline + 11 新）.
+
+---
+
 ## v3.4.3 — 2026-05-12 (开放式基金分类修复 + 字段级 fallback gate)
 
 ### 改动 1 · 开放式基金（OEIC）正确分类 · issue #60 复议

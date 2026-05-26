@@ -563,9 +563,10 @@ def assemble(ticker: str) -> Path:
     )
 
     # v2.3 · Data quality banner (only renders when synthesis.data_gaps present)
+    # v3.4.4 · 传 raw 让 banner 检测 ETF/基金类型 · 优化文案避免误判可信度
     template = template.replace(
         "<!-- INJECT_DATA_GAP_BANNER -->",
-        _render_data_gap_banner(syn.get("data_gaps")),
+        _render_data_gap_banner(syn.get("data_gaps"), raw=raw),
     )
 
     # v2.7 · Style chip (动态加权说明，只在 detected_style 存在时渲染)
