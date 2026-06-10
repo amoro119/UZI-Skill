@@ -1,5 +1,34 @@
 # Release Notes
 
+## v3.8.1 — 2026-06-09 (skills 全面体检 · H/I 两组配套层 6 处补齐)
+
+### 🩺 背景 · 全面体检发现"加人没加配套"
+
+v3.6.3 加 Serenity (I 组)、v3.7.0 加 13 位科技大佬 (B/C/E/G/H 组) 时，**只更新了 investor_db + 规则**，多处按组遍历/查表的配套层漏了 H/I —— 都是静默降级（不崩但功能缺失），所以一直没暴露。
+
+### 🐛 修复的 6 个 bug
+
+| # | 位置 | 症状 | 修复 |
+|---|---|---|---|
+| 1 | `assets/avatars/` | **14 位新评委无头像 SVG** → 报告评委席/群聊/世纪分歧全是破图 | 跑 `gen_pixel_avatars.py` 补 14 个 · 总 65 |
+| 2 | `special_cards.render_school_scores` | `order=[A..G]` → **H/I 两派分数永远不渲染**（报告"流派评分"卡片静默丢 2 派）| order 扩到 A-I |
+| 3 | `panel_cards.GROUP_LABELS` ×2 处 | H/I 评委组标签显示裸字母 "H"/"I" | 补 "科技"/"卡位" 标签 |
+| 4 | `investor_profile.GROUP_DEFAULT` | H/I 评委 profile 落 GENERIC_FALLBACK → 报告里 time_horizon 等全是 "—" | 补 H/I 流派级档案 |
+| 5 | `stock_style.STYLE_GROUP_WEIGHTS` | H/I 在全部 8 种风格下吃默认 1.0 → **v2.7 风格动态加权对两组失效** | 8 风格 × H/I 补权重（I 在红利股 0.2 · 科技成长 1.5）|
+| 6 | `investor_knowledge.MARKET_SCOPE` + `investor_personas.PERSONAS` | 13 新评委缺显式 scope（靠隐式默认）+ 缺台词（群聊全是 generic fallback 套话）| 13 人显式登记 "all" + 各写 voice 台词（Naval 的杠杆哲学 / Burry 的 "I may be early" / 黄仁勋的 "The more you buy..." / Saylor 的法币融化 等）|
+
+### 📝 文档同步（~35 处）
+
+- `deep-analysis/SKILL.md` 25 处 + `investor-panel/SKILL.md` 5 处 + `commands/` 6 处：51/52 评委 → 65 · 7 大流派 → 9 · 180 条规则 → 236 · group-{a..g} → {a..i} · `--school` A-G → A-I
+- persona 段落精确化：51 位有 YAML（12 flagship + 39 stub）· 13 位新晋由台词库 + Rules 驱动
+
+### 🧪 测试
+
+- 10 个新体检回归测试（全员头像 / school_scores 渲染 H+I / GROUP_LABELS / profile / 风格权重 / scope / 台词渲染 / 文档计数）
+- **632/632 全过**
+
+---
+
 ## v3.8.0 — 2026-06-08 (Tier-1 5 方法 + Serenity 严谨化 + 技术指标/杜邦扩展)
 
 ### ✨ Feature · 从 `anthropics/financial-services` 续引入 5 个与个股研究强相关的方法

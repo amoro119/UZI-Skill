@@ -7,6 +7,38 @@
 
 ---
 
+## v3.8.1 (2026-06-09 · 全面体检 · H/I 两组配套层 6 处补齐)
+
+### BUG · 加评委没加配套 · 6 个静默降级缺陷
+
+- **症状**：v3.6.3 (Serenity I 组) / v3.7.0 (13 位科技大佬 H 等组) 上线后 · 报告中
+  ① 14 位新评委头像破图 ② 流派评分卡永远只显示 7 派（H/I 静默消失）③ H/I 组标签
+  显示裸字母 ④ H/I 评委的 time_horizon/position_sizing 全 "—" ⑤ 风格动态加权对
+  H/I 失效 ⑥ 新评委群聊台词全是 generic 套话
+- **根因**：加评委只改了 investor_db + investor_criteria · 但仓库里有 **6 处按组
+  遍历/查表的硬编码 A-G 配套层** · 全部用 `.get(g, default)` 优雅降级 → 不崩 ·
+  所以 CI 全绿 · 视觉缺陷一直没暴露
+- **修法**：
+  1. `gen_pixel_avatars.py` 重跑 → 补 14 头像（脚本本身就支持增量 · 之前没人跑）
+  2. `special_cards.render_school_scores` order A-G → A-I
+  3. `panel_cards.GROUP_LABELS` + `special_cards` 内联副本 → 补 H/I
+  4. `investor_profile.GROUP_DEFAULT` → 补 H/I 流派档案
+  5. `stock_style.STYLE_GROUP_WEIGHTS` 8 风格 × 补 H/I 列
+  6. `MARKET_SCOPE` 13 人显式登记 + `PERSONAS` 13 人 voice 台词
+- **验证**：10 个体检回归测试 (`test_v3_8_1_audit_fixes.py`) · 632 passed
+- **未来改该区域注意事项**（防再犯 · 关键）：
+  - **加新评委的 checklist**（缺一不可）：investor_db → investor_criteria →
+    `gen_pixel_avatars.py` 重跑 → MARKET_SCOPE → PERSONAS 台词 → 若新增组：
+    GROUP_LABELS ×2 / render_school_scores order / GROUP_DEFAULT /
+    STYLE_GROUP_WEIGHTS / SCHOOL_LABELS / run.py --school choices /
+    _render_school_lock_banner THEMES / score_fns GROUP_META
+  - 体检测试 `test_v3_8_1_audit_fixes.py` 已把以上大部分变成硬断言 ·
+    新加组时这些测试会先红 · 跟着修就不会漏
+  - 不要依赖 `.get(g, 1.0)` 这类优雅降级当"没问题"的证据 —— 它恰恰是
+    本次 6 个缺陷能潜伏两个版本的原因
+
+---
+
 ## v3.6.3 (2026-06-03 · 重磅角色 Serenity · AI 卡位/瓶颈猎手 I 组)
 
 ### BUG · Serenity 卡位关键词库漏掉 AR/消费光学，把光学股误判成「不在 AI 链」
